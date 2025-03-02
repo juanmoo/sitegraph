@@ -17,8 +17,8 @@ def save_json(data, filename):
 def generate_graphml(site_structure, filename):
     import networkx as nx
     G = nx.DiGraph()
-    for page, links in site_structure.items():
-        G.add_node(page, label=page)
-        for link in links:
+    for page, data in site_structure.items():
+        G.add_node(page, label=page, title=data['title'])
+        for link in data['links']:
             G.add_edge(page, link)
     nx.write_graphml(G, filename)
