@@ -8,7 +8,7 @@ import logging
 import time
 
 # Create a logger object
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('crawler')
 logger.setLevel(logging.INFO)
 
 # Create a file handler
@@ -49,7 +49,8 @@ def process_url(url, current_depth, domain, visited, site_structure):
         logger.info(f"Found {len(links)} links on page {url}")
         site_structure[url] = {'title': title, 'links': links}
         end_time = time.time()
-        logger.info(f"Finished processing URL: {url}. Time taken: {end_time - start_time} seconds")
+        elapsed = end_time - start_time
+        logger.info(f"Finished processing URL: {url}. Time taken: {elapsed:.2f} seconds")
         return links
     else:
         logger.warning(f"Failed to retrieve URL: {url} with status code {response.status_code}")
@@ -61,6 +62,7 @@ def crawl_bfs(start_url, depth, domain):
     queue = deque([(start_url, depth)])
     total_urls = 0
     start_time = time.time()
+    last_log_time = start_time
 
     logger.info(f"Starting BFS crawl from {start_url} with depth {depth}")
 
@@ -80,7 +82,12 @@ def crawl_bfs(start_url, depth, domain):
             links = future.result()
             total_urls += len(links)
 
-            logger.info(f"URL {url} returned {len(links)} links")
+            current_time = time.time()
+            if current_time - last_log_time >= 5:
+                elapsed = current_time - start_time
+                rate = total_urls / elapsed if elapsed > 0 else 0
+                logger.info(f"Crawling rate: {rate:.2f} URLs/second after {elapsed:.2f} seconds")
+                last_log_time = current_time
 
             for link in links:
                 if link not in visited:
@@ -89,19 +96,27 @@ def crawl_bfs(start_url, depth, domain):
 
     end_time = time.time()
     total_time = end_time - start_time
-    logger.info(f"Finished BFS crawl. Total URLs processed: {total_urls}. Total time taken: {total_time} seconds. Rate: {total_urls / total_time:.2f} URLs/second")
+    overall_rate = total_urls / total_time if total_time > 0 else 0
+    logger.info(f"Finished BFS crawl. Total URLs processed: {total_urls}. Total time taken: {total_time:.2f} seconds. Overall rate: {overall_rate:.2f} URLs/second")
 
     logger.info("BFS crawl completed.")
     return site_structure
 
-def crawl_dfs(url, depth, domain, visited=None, site_structure=None):
+def crawl_dfs(url, depth, domain, visited=None, site_structure=None, start_time=None, total_urls=None, last_log_time=None):
     if visited is None:
         visited = set()
     if site_structure is None:
         site_structure = {}
+    if start_time is None:
+        start_time = time.time()
+    if total_urls is None:
+        total_urls = [0]
+    if last_log_time is None:
+        last_log_time = [start_time]
 
     if depth == 0 or url in visited:
         return site_structure
+
     logger.debug(f"Crawling (DFS) at depth {depth}: {url}")
     visited.add(url)
     response = requests.get(url)
@@ -110,9 +125,18 @@ def crawl_dfs(url, depth, domain, visited=None, site_structure=None):
         title = str(soup.title.string) if soup.title else "No title"
         links = list(extract_links(response.text, url, domain))
         site_structure[url] = {'title': title, 'links': links}
+        total_urls[0] += len(links)
+
+        current_time = time.time()
+        if current_time - last_log_time[0] >= 5:
+            elapsed = current_time - start_time
+            rate = total_urls[0] / elapsed if elapsed > 0 else 0
+            logger.info(f"Crawling rate: {rate:.2f} URLs/second after {elapsed:.2f} seconds")
+            last_log_time[0] = current_time
+
         for link in links:
             if link not in visited:
-                crawl_dfs(link, depth - 1, domain, visited, site_structure)
+                crawl_dfs(link, depth - 1, domain, visited, site_structure, start_time, total_urls, last_log_time)
     else:
         logger.warning(f"Failed to retrieve URL: {url} with status code {response.status_code}")
 

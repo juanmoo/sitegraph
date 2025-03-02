@@ -1,11 +1,27 @@
 from crawler import crawl_dfs, crawl_bfs
 from utils import save_json, generate_graphml
 import os
+import logging
 
 def main():
-    start_url = "https://www.joingivers.com/"
-    max_depth = 3
-    domain = "joingivers.com"
+    # Set up logging
+    logger = logging.getLogger('crawler')
+    logger.setLevel(logging.INFO)
+
+    # Create a file handler
+    handler = logging.FileHandler('crawler.log')
+    handler.setLevel(logging.INFO)
+
+    # Create a logging format
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    # Add the handlers to the logger
+    logger.addHandler(handler)
+
+    start_url = "https://www.abbycare.org/"
+    max_depth = 2
+    domain = "abbycare.org"
     output_directory = f"{domain}_depth={max_depth}"
 
     # Ensure the output directory exists and delete previous content if re-running
@@ -18,7 +34,7 @@ def main():
         os.makedirs(output_directory, exist_ok=True)
     
     # Choose either DFS or BFS crawling
-    # site_structure = crawl(start_url, max_depth, domain)  # For DFS
+    # site_structure = crawl_dfs(start_url, max_depth, domain)  # For DFS
     site_structure = crawl_bfs(start_url, max_depth, domain)  # For BFS
     
     # Save the site structure to a JSON file
