@@ -4,7 +4,7 @@ import os
 
 def main():
     start_url = "https://www.joingivers.com/"
-    max_depth = 10
+    max_depth = 3
     domain = "joingivers.com"
     output_directory = f"{domain}_depth={max_depth}"
 
